@@ -194,7 +194,7 @@ func (t *SimpleChaincode) init_amount(stub shim.ChaincodeStubInterface, args []s
 	}
 	
 	name := args[0]
-	amount,err := strconv.ParseFloat(args[2], 64)
+	amount,err := strconv.ParseFloat(args[1], 64)
 	if err != nil {
 		return nil, errors.New("2nd argument must be a numeric string")
 	}
@@ -218,12 +218,12 @@ func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []stri
 	
 	//    0       1      2
 	// "alice", "bob", "12.56"
-	if len(args) < 3 {
+	if len(args) != 3 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 3")
 	}
 	
 	fmt.Println("- start transfer money")
-	fmt.Println("from " + args[0] + " to " + args[1])
+	fmt.Println("- from " + args[0] + " to " + args[1])
 
 	userA = args[0]
 	userB = args[1]
@@ -267,7 +267,7 @@ func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []stri
 		return nil, err
 	}
 
-	err = stub.PutState(args[0], []byte(newAmountStrB))		
+	err = stub.PutState(args[1], []byte(newAmountStrB))		
 
 	if err != nil {
 		return nil, err
