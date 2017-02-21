@@ -63,6 +63,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.Init(stub, "init", args)
 	} else if function == "write" {
 		return t.write(stub, args)
+	} else if function == "delete" {
+		return t.delete(stub, args)
 	}
 	fmt.Println("invoke did not find func: " + function)
 
@@ -120,6 +122,22 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 	return valAsbytes, nil
 }
 
+// ============================================================================================================================
+// Delete - remove a key/value pair from state
+// ============================================================================================================================
+func (t *SimpleChaincode) delete(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 1")
+	}
+	
+	name := args[0]
+	err := stub.DelState(name)													//remove the key from chaincode state
+	if err != nil {
+		return nil, errors.New("Failed to delete state")
+	}
+
+	return nil, nil
+}
 
 // ============================================================================================================================
 // Init Amount - set the initial amount for user
