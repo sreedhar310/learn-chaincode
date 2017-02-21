@@ -44,34 +44,19 @@ func main() {
 // Init - reset all the things
 // ============================================================================================================================
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	var Aval int
 	var err error
 
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 
-	// Initialize the chaincode
-	Aval, err = strconv.Atoi(args[0])
-	if err != nil {
-		return nil, errors.New("Expecting integer value for asset holding")
-	}
-
 	// Write the state to the ledger
-	err = stub.PutState("testKey", []byte(strconv.Itoa(Aval)))				//making a test var "testKey", I find it handy to read/write to it right away to test the network
+	err = stub.PutState("testKey", []byte(args[0]))				//making a test var "testKey", I find it handy to read/write to it right away to test the network
 	if err != nil {
 		return nil, err
 	}
 	
 	return nil, nil
-}
-
-// ============================================================================================================================
-// Run - Our entry point for Invocations - [LEGACY] obc-peer 4/25/2016
-// ============================================================================================================================
-func (t *SimpleChaincode) Run(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
-	fmt.Println("run is running " + function)
-	return t.Invoke(stub, function, args)
 }
 
 // ============================================================================================================================
@@ -84,10 +69,11 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	if function == "init" {													
 		return t.Init(stub, "init", args)
 	} else if function == "delete" {										
-		res, err := t.Delete(stub, args)
-		return res, err
+		return t.delete(stub, args)
 	} else if function == "write" {								
-		return t.Write(stub, args)
+		return t.write(stub, args)
+	} else if function == "read" {								
+		return t.read(stub, args)
 	} else if function == "init_amount" {									
 		return t.init_amount(stub, args)
 	} else if function == "transfer" {										
@@ -106,7 +92,7 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 
 	// Handle different functions
 	if function == "read" {													//read a variable
-		return t.Read(stub, args)
+		return t.read(stub, args)
 	}
 	fmt.Println("query did not find func: " + function)						//error
 
@@ -116,7 +102,7 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 // ============================================================================================================================
 // Read - read a variable from chaincode state
 // ============================================================================================================================
-func (t *SimpleChaincode) Read(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var name, jsonResp string
 	var err error
 
@@ -137,7 +123,7 @@ func (t *SimpleChaincode) Read(stub shim.ChaincodeStubInterface, args []string) 
 // ============================================================================================================================
 // Delete - remove a key/value pair from state
 // ============================================================================================================================
-func (t *SimpleChaincode) Delete(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func (t *SimpleChaincode) delete(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if len(args) != 1 {
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
@@ -154,7 +140,7 @@ func (t *SimpleChaincode) Delete(stub shim.ChaincodeStubInterface, args []string
 // ============================================================================================================================
 // Write - write variable into chaincode state
 // ============================================================================================================================
-func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+func (t *SimpleChaincode) write(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var name, value string // Entities
 	var err error
 	fmt.Println("running write()")
