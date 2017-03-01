@@ -250,7 +250,7 @@ func (t *SimpleChaincode) init_account(stub shim.ChaincodeStubInterface, args []
 	}
 	amountStr := strconv.FormatFloat(ammount, 'E', -1, 64)
 	//build the account json string manually
-	str := `{"accountno": "` + accountNo + `", "owner": "` + user + `, "balance": "` + amountStr + `"}`
+	str := `{"accountno": "` + accountNo + `", "owner": "` + user + `", "balance": "` + amountStr + `"}`
 	err = stub.PutState(accountNo, []byte(str))							
 	if err != nil {
 		return nil, err
