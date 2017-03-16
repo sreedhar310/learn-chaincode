@@ -37,7 +37,8 @@ var accountIndexStr = "_accountindex"
 
 type Account struct{
 	AccountNo string `json:"accountno"`	
-	Owner string `json:"owner"`				
+	LegalEntity string `json:"legalentity"`
+	Currency string `json:"currency"`				
 	Balance string `json:"balance"`
 }
 
@@ -97,10 +98,10 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.Delete(stub, args)												//lets make sure all open trades are still valid
 	} else if function == "write" {											//writes a value to the chaincode state
 		return t.Write(stub, args)
-	} else if function == "init_account" {									//create a new marble
+	} else if function == "init_account" {									//create a new account
 		return t.init_account(stub, args)
-	} else if function == "transfer_balance" {										//change owner of a marble
-		return t.transfer_balance(stub, args)												//lets make sure all open trades are still valid
+	} else if function == "transfer_balance" {									
+		return t.transfer_balance(stub, args)										
 	}
 	fmt.Println("invoke did not find func: " + function)					//error
 
@@ -204,15 +205,15 @@ func (t *SimpleChaincode) Write(stub shim.ChaincodeStubInterface, args []string)
 }
 
 // ============================================================================================================================
-// Init Marble - create a new marble, store into chaincode state
+// Init account - create a new account, store into chaincode state
 // ============================================================================================================================
 func (t *SimpleChaincode) init_account(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var err error
 
-	//       0        1      2   
-	// "accountNo", "bob", "3500"
-	if len(args) != 3 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 3")
+	//       0        1      2      3
+	// "accountNo", "bob", "USD", "3500"
+	if len(args) != 4 {
+		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
 	//input sanitation
@@ -226,14 +227,19 @@ func (t *SimpleChaincode) init_account(stub shim.ChaincodeStubInterface, args []
 	if len(args[2]) <= 0 {
 		return nil, errors.New("3rd argument must be a non-empty string")
 	}
+	if len(args[3]) <= 0 {
+		return nil, errors.New("3rd argument must be a non-empty string")
+	}
 
 	accountNo := args[0]
 
-	user := strings.ToLower(args[1])
+	legalEntity := strings.ToLower(args[1])
 
-	ammount, err := strconv.ParseFloat(args[2],64)
+	currency := args[2]
+
+	ammount, err := strconv.ParseFloat(args[3],64)
 	if err != nil {
-		return nil, errors.New("3rd argument must be a numeric string")
+		return nil, errors.New("4rd argument must be a numeric string")
 	}
 
 	//check if account already exists
@@ -250,7 +256,7 @@ func (t *SimpleChaincode) init_account(stub shim.ChaincodeStubInterface, args []
 	}
 	amountStr := strconv.FormatFloat(ammount, 'E', -1, 64)
 	//build the account json string manually
-	str := `{"accountno": "` + accountNo + `", "owner": "` + user + `", "balance": "` + amountStr + `"}`
+	str := `{"accountno": "` + accountNo + `", "legalentity": "` + legalEntity + `", "currency": "` + currency + `", "balance": "` + amountStr + `"}`
 	err = stub.PutState(accountNo, []byte(str))							
 	if err != nil {
 		return nil, err
@@ -275,7 +281,7 @@ func (t *SimpleChaincode) init_account(stub shim.ChaincodeStubInterface, args []
 }
 
 // ============================================================================================================================
-// Set User Permission on Marble
+// transfer the balance between accounts
 // ============================================================================================================================
 func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	var err error
@@ -330,13 +336,13 @@ func (t *SimpleChaincode) transfer_balance(stub shim.ChaincodeStubInterface, arg
 	resB.Balance = newAmountStrB
 
 	jsonAAsBytes, _ := json.Marshal(resA)
-	err = stub.PutState(args[0], jsonAAsBytes)								//rewrite the marble with id as key
+	err = stub.PutState(args[0], jsonAAsBytes)								
 	if err != nil {
 		return nil, err
 	}
 
 	jsonBAsBytes, _ := json.Marshal(resB)
-	err = stub.PutState(args[1], jsonBAsBytes)								//rewrite the marble with id as key
+	err = stub.PutState(args[1], jsonBAsBytes)								
 	if err != nil {
 		return nil, err
 	}
