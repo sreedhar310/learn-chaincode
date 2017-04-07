@@ -202,7 +202,7 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	if function == "get_invoice_details" {
 		if len(args) != 1 { fmt.Printf("Incorrect number of arguments passed"); return nil, errors.New("QUERY: Incorrect number of arguments passed") }
 		inv, err := t.retrieve_invoice(stub, args[0])
-		if err != nil { fmt.Printf("QUERY: Error retrieving nvoice: %s", err); return nil, errors.New("QUERY: Error retrieving nvoice "+err.Error()) }
+		if err != nil { fmt.Printf("QUERY: Error retrieving nvoice: %s", err); return nil, errors.New("QUERY: Error retrieving invoice "+err.Error()) }
 		return t.get_invoice_details(stub, inv, caller, role)
 	} else if function == "check_unique_invoice" {
 		return t.check_unique_invoice(stub, args[0], caller, role)
@@ -210,6 +210,8 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.get_invoices(stub, caller, role)
 	}  else if function == "read" {													//read a variable
 		return t.read(stub, args)
+	} else if function == "get_username" {													//read a variable
+		return stub.ReadCertAttribute(args[0]);
 	} else {
 		return t.ping(stub)
 	} 
@@ -283,7 +285,7 @@ func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, calle
 
 	_, err  = t.save_changes(stub, inv)
 
-	if err != nil { fmt.Printf("CREATE_INOVICE: Error saving changes: %s", err); return nil, errors.New("Error saving changes") }
+	if err != nil { fmt.Printf("CREATE_INVOICE: Error saving changes: %s", err); return nil, errors.New("Error saving changes") }
 
 	bytes, err := stub.GetState("invoiceIDs")
 
