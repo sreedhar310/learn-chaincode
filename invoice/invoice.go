@@ -208,9 +208,11 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.check_unique_invoice(stub, args[0], caller, role)
 	} else if function == "get_invoices" {
 		return t.get_invoices(stub, caller, role)
-	}  else {
+	}  else if function == "read" {													//read a variable
+		return t.read(stub, args)
+	} else {
 		return t.ping(stub)
-	}
+	} 
 
 	return nil, errors.New("Received unknown function invocation " + function)
 
@@ -223,6 +225,24 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 //=================================================================================================================================
 func (t *SimpleChaincode) ping(stub shim.ChaincodeStubInterface) ([]byte, error) {
 	return []byte("Hello, world!"), nil
+}
+
+func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var name, jsonResp string
+	var err error
+
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting name of the var to query")
+	}
+
+	name = args[0]
+	valAsbytes, err := stub.GetState(name)									//get the var from chaincode state
+	if err != nil {
+		jsonResp = "{\"Error\":\"Failed to get state for " + name + "\"}"
+		return nil, errors.New(jsonResp)
+	}
+
+	return valAsbytes, nil													//send it onward
 }
 
 //=================================================================================================================================
