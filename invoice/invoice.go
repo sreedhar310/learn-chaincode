@@ -211,7 +211,7 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	}  else if function == "read" {													//read a variable
 		return t.read(stub, args)
 	} else if function == "get_username" {													//read a variable
-		return stub.ReadCertAttribute(args[0]);
+		return stub.ReadCertAttribute("username");
 	} else {
 		return t.ping(stub)
 	} 
