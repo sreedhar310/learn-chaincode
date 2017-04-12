@@ -8,8 +8,7 @@ import (
 )
 
 //==============================================================================================================================
-//	 Participant types - Each participant type is mapped to an integer which we use to compare to the value stored in a
-//						 user's eCert
+//	 Participant types
 //==============================================================================================================================
 
 const   SUPPLIER   =  "supplier"
@@ -27,16 +26,16 @@ type  SimpleChaincode struct {
 }
 
 //==============================================================================================================================
-//	Vehicle - Defines the structure for a car object. JSON on right tells it what JSON fields to map to
-//			  that element when reading a JSON object into the struct e.g. JSON make -> Struct Make.
+//	Invoice - Defines the structure for a invoice object. JSON on right tells it what JSON fields to map to
+//			  that element when reading a JSON object into the struct e.g. JSON amount -> Struct Amount.
 //==============================================================================================================================
 type Invoice struct {
 	InvoiceId        string `json:"invoiceid"`
 	Amount           string `json:"amount"`
 	Currency         string `json:"currency"`
-	Supplier         string    `json:"supplier"`
+	Supplier         string `json:"supplier"`
 	Payer            string `json:"payer"`
-	DueDate          string   `json:"duedate"`
+	DueDate          string `json:"duedate"`
 	Status           int    `json:"status"`
 	Buyer            string `json:"buyer"`
 	Discount         string `json:"discount"`
@@ -45,8 +44,8 @@ type Invoice struct {
 
 
 //==============================================================================================================================
-//	V5C Holder - Defines the structure that holds all the v5cIDs for vehicles that have been created.
-//				Used as an index when querying all vehicles.
+//	Invoice Holder - Defines the structure that holds all the invoiceIDs for invoices that have been created.
+//				     Used as an index when querying all invoices.
 //==============================================================================================================================
 
 type Invoice_Holder struct {
@@ -72,6 +71,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 	err = stub.PutState("invoiceIDs", bytes)
 	if err != nil { return nil, errors.New("Error putting state with invoiceIDs") }
 
+	// save the role of users in the world state  (LATER, MAY USE TCERT ATTRIBUTES)
 	for i:=0; i < len(args); i=i+2 {
 		t.add_particants(stub, args[i], args[i+1])
 	}
@@ -83,18 +83,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 //	 General Functions
 //==============================================================================================================================
 
-func (t *SimpleChaincode) get_role(stub shim.ChaincodeStubInterface, name string) ([]byte, error) {
-
-	role, err := stub.GetState(name)
-
-	if err != nil { return nil, errors.New("Couldn't retrieve role for user " + name) }
-
-	return role, nil
-}
-
-
 func (t *SimpleChaincode) add_particants(stub shim.ChaincodeStubInterface, name string, role string) ([]byte, error) {
-
 
 	err := stub.PutState(name, []byte(role))
 
@@ -107,7 +96,7 @@ func (t *SimpleChaincode) add_particants(stub shim.ChaincodeStubInterface, name 
 }
 
 //==============================================================================================================================
-//	 get_caller - Retrieves the username of the user who invoked the chaincode.
+//	 get_username - Retrieves the username of the user who invoked the chaincode.
 //				  Returns the username as a string.
 //==============================================================================================================================
 
@@ -118,6 +107,12 @@ func (t *SimpleChaincode) get_username(stub shim.ChaincodeStubInterface) (string
 	return string(username), nil
 }
 
+func (t *SimpleChaincode) get_role(stub shim.ChaincodeStubInterface, name string) (string, error) {
+
+	role, err := stub.GetState(name)
+	if err != nil { return "", errors.New("Couldn't retrieve role for user " + name) }
+	return string(role), nil
+}
 
 //==============================================================================================================================
 //	 get_caller_data - Calls the get_ecert and check_role functions and returns the ecert and role for the
@@ -130,9 +125,9 @@ func (t *SimpleChaincode) get_caller_data(stub shim.ChaincodeStubInterface) (str
 
 	role, err := t.get_role(stub,user);
 
-    if err != nil { return "", "", err }
+    if err != nil { return "", "", errors.New("Couldn't retrieve caller data.") }
 
-	return user, string(role), nil
+	return user, role, nil
 }
 
 //==============================================================================================================================
@@ -182,13 +177,16 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 
 	if err != nil { return nil, errors.New("Error retrieving caller information")}
 
-
 	if function == "create_invoice" {
         return t.create_invoice(stub, caller, role, args)
+	} else if function == "offer_trade"{
+		return t.offer_trade(stub, caller, role, args)
+	} else if function == "accept_trade"{
+		return t.accept_trade(stub, caller, role, args)
 	} else {
         return t.ping(stub)
     } 
-
+    return nil, errors.New("Received unknown function invocation " + function)
 }
 //=================================================================================================================================
 //	Query - Called on chaincode query. Takes a function name passed and calls that function. Passes the
@@ -202,15 +200,13 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	if function == "get_invoice_details" {
 		if len(args) != 1 { fmt.Printf("Incorrect number of arguments passed"); return nil, errors.New("QUERY: Incorrect number of arguments passed") }
 		inv, err := t.retrieve_invoice(stub, args[0])
-		if err != nil { fmt.Printf("QUERY: Error retrieving nvoice: %s", err); return nil, errors.New("QUERY: Error retrieving invoice "+err.Error()) }
+		if err != nil { fmt.Printf("QUERY: Error retrieving invoice: %s", err); return nil, errors.New("QUERY: Error retrieving invoice "+err.Error()) }
 		return t.get_invoice_details(stub, inv, caller, role)
-	} else if function == "check_unique_invoice" {
-		return t.check_unique_invoice(stub, args[0], caller, role)
-	} else if function == "get_invoices" {
+	}  else if function == "get_invoices" {
 		return t.get_invoices(stub, caller, role)
-	}  else if function == "read" {													//read a variable
+	}  else if function == "read" {													
 		return t.read(stub, args)
-	} else if function == "get_username" {													//read a variable
+	} else if function == "get_username" {										
 		return stub.ReadCertAttribute("username");
 	} else {
 		return t.ping(stub)
@@ -253,13 +249,18 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 //	 Create Vehicle - Creates the initial JSON for the vehcile and then saves it to the ledger.
 //=================================================================================================================================
 func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, caller string, role string, args []string) ([]byte, error) {
+
+	//Args
+	//				0               1              2        
+	//			123443232        100.00        test_user1    
+
 	var inv Invoice
 
 	invId          := "\"invoiceid\":\""+args[0]+"\", "							// Variables to define the JSON
 	amount         := "\"amount\":\""+args[1]+"\", "	
 	currency       := "\"currency\":\"USD\", "
 	supplier       := "\"supplier\":\""+caller+"\", "
-	payer          := "\"payer\":\"UNDEFINED\", "
+	payer          := "\"payer\":\""+args[2]+"\", "	
 	status         := "\"status\":\"0\", "
 	buyer          := "\"buyer\":\"UNDEFINED\", "
 	discount       := "\"discount\":\"UNDEFINED\", "
@@ -311,19 +312,78 @@ func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, calle
 
 }
 
+func (t *SimpleChaincode) offer_trade(stub shim.ChaincodeStubInterface, caller string, role string, args []string) ([]byte, error) {
+
+	//Args
+	//				0               1            
+	//			123443232          0.05         
+	var inv Invoice
+
+	var invoiceId = args[0]
+
+	inv, err := t.retrieve_invoice(stub, invoiceId)
+
+	
+	if  caller != inv.Supplier {
+		return nil, errors.New(fmt.Sprintf("Permission Denied. offer_trade. %v !== %v", caller, inv.Supplier))
+	}
+	if 	role != SUPPLIER {						
+		return nil, errors.New(fmt.Sprintf("Permission Denied. offer_trade. %v !== %v", role, SUPPLIER))
+	}
+
+	inv.Status = 1
+	inv.Discount = args[1]
+
+	_, err  = t.save_changes(stub, inv)
+
+	if err != nil { fmt.Printf("OFFER_TRADE: Error saving changes: %s", err); return nil, errors.New("Error saving changes") }
+
+	return nil, nil
+
+}
+
+func (t *SimpleChaincode) accept_trade(stub shim.ChaincodeStubInterface, caller string, role string, args []string) ([]byte, error) {
+
+	//Args
+	//				0                  
+	//			123443232         
+	var inv Invoice
+
+	var invoiceId = args[0]
+
+	inv, err := t.retrieve_invoice(stub, invoiceId)
+
+
+	if 	role != BUYER {						
+		return nil, errors.New(fmt.Sprintf("Permission Denied. offer_trade. %v !== %v", role, BUYER))
+	}
+
+	inv.Buyer = caller
+	inv.Status = 2
+
+	_, err  = t.save_changes(stub, inv)
+
+	if err != nil { fmt.Printf("OFFER_TRADE: Error saving changes: %s", err); return nil, errors.New("Error saving changes") }
+
+	return nil, nil
+
+}
+
+
 //=================================================================================================================================
 //	 Read Functions
 //=================================================================================================================================
-//	 get_vehicle_details
+//	 get_invoice_details
 //=================================================================================================================================
 func (t *SimpleChaincode) get_invoice_details(stub shim.ChaincodeStubInterface, inv Invoice, caller string, caller_affiliation string) ([]byte, error) {
 
 	bytes, err := json.Marshal(inv)
 
-	if err != nil { return nil, errors.New("GET_VEHICLE_DETAILS: Invalid vehicle object") }
+	if err != nil { return nil, errors.New("GET_INVOICE_DETAILS: Invalid invoice object") }
 
 	if 		inv.Supplier  == caller		||
-			inv.Buyer	== caller	{
+			inv.Buyer	== caller	||
+			inv.Payer == caller	 {
 				return bytes, nil
 	} else {
 			return nil, errors.New("Permission Denied. get_invoice_details")
@@ -332,7 +392,7 @@ func (t *SimpleChaincode) get_invoice_details(stub shim.ChaincodeStubInterface, 
 }
 
 //=================================================================================================================================
-//	 get_vehicles
+//	 get_invoices
 //=================================================================================================================================
 
 func (t *SimpleChaincode) get_invoices(stub shim.ChaincodeStubInterface, caller string, role string) ([]byte, error) {
@@ -373,16 +433,40 @@ func (t *SimpleChaincode) get_invoices(stub shim.ChaincodeStubInterface, caller 
 	return []byte(result), nil
 }
 
-//=================================================================================================================================
-//	 check_unique_v5c
-//=================================================================================================================================
-func (t *SimpleChaincode) check_unique_invoice(stub shim.ChaincodeStubInterface, invoiceId string, caller string, caller_affiliation string) ([]byte, error) {
-	_, err := t.retrieve_invoice(stub, invoiceId)
-	if err == nil {
-		return []byte("false"), errors.New("invoice is not unique")
-	} else {
-		return []byte("true"), nil
+func (t *SimpleChaincode) get_opening_trade_invoices(stub shim.ChaincodeStubInterface, caller string, role string) ([]byte, error) {
+	bytes, err := stub.GetState("invoiceIDs")
+
+	if err != nil { return nil, errors.New("Unable to get invoiceIDs") }
+
+	var invoiceIDs Invoice_Holder
+
+	err = json.Unmarshal(bytes, &invoiceIDs)
+
+	if err != nil {	return nil, errors.New("Corrupt Invoice_Holder") }
+
+	result := "["
+
+	var inv Invoice
+
+	for _, invoiceId := range invoiceIDs.Invoices {
+
+		inv, err = t.retrieve_invoice(stub, invoiceId)
+		if err != nil {return nil, errors.New("Failed to retrieve Invoice")}
+
+		if inv.Status == 1 {
+			bytes, err := json.Marshal(inv)
+			if err != nil { return nil, errors.New("GET_INVOICE_DETAILS: Invalid invoice object") }
+			result += string(bytes) + ","
+		}
 	}
+
+	if len(result) == 1 {
+		result = "[]"
+	} else {
+		result = result[:len(result)-1] + "]"
+	}
+
+	return []byte(result), nil
 }
 
 //=================================================================================================================================
