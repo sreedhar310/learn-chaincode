@@ -261,13 +261,14 @@ func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, calle
 	currency       := "\"currency\":\"USD\", "
 	supplier       := "\"supplier\":\""+caller+"\", "
 	payer          := "\"payer\":\""+args[2]+"\", "	
+	duedate          := "\"duedate\":\"UNDEFINED\", "
 	status         := "\"status\":\"0\", "
 	buyer          := "\"buyer\":\"UNDEFINED\", "
 	discount       := "\"discount\":\"UNDEFINED\", "
 
 	var invoiceId = args[0]
 
-	invoice_json := "{"+invId+amount+currency+supplier+payer+status+buyer+discount+"}" 	// Concatenates the variables to create the total JSON object
+	invoice_json := "{"+invId+amount+currency+supplier+payer+duedate+status+buyer+discount+"}" 	// Concatenates the variables to create the total JSON object
 
 
 	err := json.Unmarshal([]byte(invoice_json), &inv)							// Convert the JSON defined above into a vehicle object for go
