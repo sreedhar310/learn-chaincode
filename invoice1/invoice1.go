@@ -36,7 +36,7 @@ type Invoice struct {
 	Supplier         string `json:"supplier"`
 	Payer            string `json:"payer"`
 	DueDate          string `json:"duedate"`
-	Status           int    `json:"status"`
+	Status           string `json:"status"`
 	Buyer            string `json:"buyer"`
 	Discount         string `json:"discount"`
 
@@ -231,7 +231,7 @@ func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, args 
 	currency       := "\"currency\":\"USD\", "
 	supplier       := "\"supplier\":\""+args[2]+"\", "
 	payer          := "\"payer\":\""+args[3]+"\", "	
-	duedate          := "\"duedate\":\"UNDEFINED\", "
+	duedate        := "\"duedate\":\"UNDEFINED\", "
 	status         := "\"status\":\"0\", "
 	buyer          := "\"buyer\":\"UNDEFINED\", "
 	discount       := "\"discount\":\"UNDEFINED\", "
@@ -315,7 +315,7 @@ func (t *SimpleChaincode) offer_trade(stub shim.ChaincodeStubInterface, args []s
 		return nil, errors.New(fmt.Sprintf("Permission Denied. offer_trade. %v !== %v", caller, inv.Supplier))
 	}
 
-	inv.Status = 1
+	inv.Status = "1"
 	inv.Discount = args[1]
 
 	_, err  = t.save_changes(stub, inv)
@@ -345,7 +345,7 @@ func (t *SimpleChaincode) accept_trade(stub shim.ChaincodeStubInterface, args []
 	}
 
 	inv.Buyer = caller
-	inv.Status = 2
+	inv.Status = "2"
 
 	_, err  = t.save_changes(stub, inv)
 
