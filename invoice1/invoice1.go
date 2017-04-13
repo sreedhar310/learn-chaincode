@@ -441,7 +441,7 @@ func (t *SimpleChaincode) get_opening_trade_invoices(stub shim.ChaincodeStubInte
 		inv, err = t.retrieve_invoice(stub, invoiceId)
 		if err != nil {return nil, errors.New("Failed to retrieve Invoice")}
 
-		if inv.Status == 1 {
+		if inv.Status == "1" {
 			bytes, err := json.Marshal(inv)
 			if err != nil { return nil, errors.New("GET_INVOICE_DETAILS: Invalid invoice object") }
 			result += string(bytes) + ","
