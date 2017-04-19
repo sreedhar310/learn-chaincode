@@ -221,7 +221,7 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	//Args
-	//				0               1              2            3 
+	//				0               1              2             3 
 	//			123443232        100.00        test_user0    test_user1
 
 	var inv Invoice
