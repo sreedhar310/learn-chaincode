@@ -151,6 +151,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
         return t.create_invoice(stub, args)
 	} else if function == "approve_trade"{
 		return t.approve_trade(stub, args)
+	} else if function == "reject_trade"{
+		return t.reject_trade(stub, args)
 	} else if function == "accept_trade"{
 		return t.accept_trade(stub, args)
 	} else {
@@ -338,6 +340,40 @@ func (t *SimpleChaincode) approve_trade(stub shim.ChaincodeStubInterface, args [
 	_, err  = t.save_changes(stub, inv)
 
 	if err != nil { fmt.Printf("APPROVE_TRADE: Error saving changes: %s", err); return nil, errors.New("Error saving changes") }
+
+	return nil, nil
+
+}
+
+func (t *SimpleChaincode) reject_trade(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+
+	//Args
+	//				0                 1
+	//			123443232         test_user1
+	var inv Invoice
+	var invoiceId = args[0]
+
+	var caller = args[1]
+
+	inv, err := t.retrieve_invoice(stub, invoiceId)
+
+	if  caller != inv.Payer {
+		return nil, errors.New(fmt.Sprintf("Permission Denied. reject_trade. %v !== %v", caller, inv.Payer))
+	}
+
+	if inv.Status == "0" {
+		return nil, errors.New(fmt.Sprintf("Permission Denied. reject_trade. This invoice hasn't been bought by a third party buyer"))
+	}
+	if inv.Status == "2" {
+		return nil, errors.New(fmt.Sprintf("Permission Denied. reject_trade. This invoice has already been approved."))
+	}
+
+	inv.Status = "0"
+	inv.Buyer = "UNDEFINED"
+
+	_, err  = t.save_changes(stub, inv)
+
+	if err != nil { fmt.Printf("REJECT_TRADE: Error saving changes: %s", err); return nil, errors.New("Error saving changes") }
 
 	return nil, nil
 
