@@ -17,7 +17,7 @@ const   BUYER =  "buyer"
 
 
 //==============================================================================================================================
-//	 Structure Definitions
+//	Structure Definitions
 //==============================================================================================================================
 //	Chaincode - A blank struct for use with Shim (A HyperLedger included go file used for get/put state
 //				and other HyperLedger functions)
@@ -180,7 +180,7 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return stub.ReadCertAttribute("username");
 	} 
 
-	return nil, errors.New("Received unknown function invocation " + function)
+	return nil, errors.New("Received unknown function query " + function)
 
 }
 
