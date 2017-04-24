@@ -8,7 +8,7 @@ import (
 )
 
 //==============================================================================================================================
-//	 Participant types
+//	 Participant roles
 //==============================================================================================================================
 
 const   SUPPLIER   =  "supplier"
@@ -80,7 +80,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 }
 
 //==============================================================================================================================
-//	 General Functions
+//	 General Functions: add_particants and get_role
 //==============================================================================================================================
 
 func (t *SimpleChaincode) add_particants(stub shim.ChaincodeStubInterface, name string, role string) ([]byte, error) {
@@ -112,11 +112,11 @@ func (t *SimpleChaincode) retrieve_invoice(stub shim.ChaincodeStubInterface, inv
 
 	bytes, err := stub.GetState(invoiceId);
 
-	if err != nil {	fmt.Printf("RETRIEVE_INVOICE: Failed to invoke invoice id: %s", err); return inv, errors.New("RETRIEVE_INVOICE: Error retrieving invoice with invoice Id = " + invoiceId) }
+	if err != nil { return inv, errors.New("RETRIEVE_INVOICE: Error retrieving invoice with invoice Id = " + invoiceId) }
 
 	err = json.Unmarshal(bytes, &inv);
 
-    if err != nil {	fmt.Printf("RETRIEVE_INVOICE: Corrupt invoice record "+string(bytes)+": %s", err); return inv, errors.New("RETRIEVE_INVOICE: Corrupt invoice record"+string(bytes))	}
+    if err != nil { return inv, errors.New("RETRIEVE_INVOICE: Corrupt invoice record "+string(bytes))	}
 
 	return inv, nil
 }
@@ -129,11 +129,11 @@ func (t *SimpleChaincode) save_changes(stub shim.ChaincodeStubInterface, inv Inv
 
 	bytes, err := json.Marshal(inv)
 
-	if err != nil { fmt.Printf("SAVE_CHANGES: Error converting invoice record: %s", err); return false, errors.New("Error converting invoice record") }
+	if err != nil { return false, errors.New("Error converting invoice record") }
 
 	err = stub.PutState(inv.InvoiceId, bytes)
 
-	if err != nil { fmt.Printf("SAVE_CHANGES: Error storing invoice record: %s", err); return false, errors.New("Error storing invoice record") }
+	if err != nil { return false, errors.New("Error storing invoice record") }
 
 	return true, nil
 }
@@ -142,7 +142,7 @@ func (t *SimpleChaincode) save_changes(stub shim.ChaincodeStubInterface, inv Inv
 //	 Router Functions
 //==============================================================================================================================
 //	Invoke - Called on chaincode invoke. Takes a function name passed and calls that function. Converts some
-//		  initial arguments passed to other things for use in the called function e.g. name -> ecert
+//		  initial arguments passed to other things for use in the called function.
 //==============================================================================================================================
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
@@ -156,6 +156,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	} else if function == "accept_trade"{
 		return t.accept_trade(stub, args)
 	}
+
     return nil, errors.New("Received unknown function invocation: " + function)
 }
 //=================================================================================================================================
@@ -173,9 +174,9 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.get_invoices(stub, args)
 	}  else if function == "get_opening_trade_invoices" {
 		return t.get_opening_trade_invoices(stub, args)
-	}  else if function == "read" {													
+	}  else if function == "read" {											
 		return t.read(stub, args)
-	}  else if function == "get_username" {					
+	}  else if function == "get_username" {			
 		return stub.ReadCertAttribute("username");
 	} 
 
@@ -205,7 +206,7 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 //=================================================================================================================================
 //	 Create Function
 //=================================================================================================================================
-//	 Create Vehicle - Creates the initial JSON for the vehcile and then saves it to the ledger.
+//	 Create Invoice - Creates the initial JSON for the invoice and then saves it to the ledger.
 //=================================================================================================================================
 func (t *SimpleChaincode) create_invoice(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
