@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
-	"github.com/hyperledger/fabric/core/errors"
+	"errors"
 )
 
 //==============================================================================================================================
