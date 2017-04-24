@@ -155,9 +155,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.reject_trade(stub, args)
 	} else if function == "accept_trade"{
 		return t.accept_trade(stub, args)
-	} else {
-        return t.ping(stub)
-    } 
+	}
     return nil, errors.New("Received unknown function invocation: " + function)
 }
 //=================================================================================================================================
@@ -167,9 +165,9 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 
 	if function == "get_invoice_details" {
-		if len(args) != 2 { fmt.Printf("Incorrect number of arguments passed"); return nil, errors.New("QUERY: Incorrect number of arguments passed") }
+		if len(args) != 2 { return nil, errors.New("QUERY: Incorrect number of arguments passed") }
 		inv, err := t.retrieve_invoice(stub, args[0])
-		if err != nil { fmt.Printf("QUERY: Error retrieving invoice: %s", err); return nil, errors.New("QUERY: Error retrieving invoice "+err.Error()) }
+		if err != nil { return nil, errors.New("QUERY: Error retrieving invoice "+err.Error()) }
 		return t.get_invoice_details(stub, inv, args[1])
 	}  else if function == "get_invoices" {
 		return t.get_invoices(stub, args)
@@ -179,21 +177,10 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 		return t.read(stub, args)
 	}  else if function == "get_username" {					
 		return stub.ReadCertAttribute("username");
-	}  else {
-		return t.ping(stub)
 	} 
 
 	return nil, errors.New("Received unknown function invocation " + function)
 
-}
-
-//=================================================================================================================================
-//	 Ping Function
-//=================================================================================================================================
-//	 Pings the peer to keep the connection alive
-//=================================================================================================================================
-func (t *SimpleChaincode) ping(stub shim.ChaincodeStubInterface) ([]byte, error) {
-	return []byte("Hello, world!"), nil
 }
 
 
