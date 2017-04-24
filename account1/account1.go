@@ -1,13 +1,13 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"encoding/json"
 	"strings"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	"github.com/hyperledger/fabric/core/errors"
 )
 
 //==============================================================================================================================
@@ -93,7 +93,7 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 	} else if function == "transfer_balance" {									
 		return t.transfer_balance(stub, args)										
 	}
-	fmt.Println("invoke did not find func: " + function)					//error
+	fmt.Errorf("invoke did not find func: " + function)					//error
 
 	return nil, errors.New("Received unknown function invocation: " + function)
 }
